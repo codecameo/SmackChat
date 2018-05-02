@@ -3,6 +3,7 @@ package tutorial.kotlin.udemy.kotlinchat.network.interfaces
 import retrofit2.Call
 import retrofit2.http.*
 import tutorial.kotlin.udemy.kotlinchat.network.models.AddUserRequestModel
+import tutorial.kotlin.udemy.kotlinchat.network.models.Channel
 import tutorial.kotlin.udemy.kotlinchat.network.models.UserLoginModel
 import tutorial.kotlin.udemy.kotlinchat.network.models.UserRegistration
 
@@ -22,4 +23,7 @@ interface ApiMethods {
 
     @GET("user/byEmail/{email}")
     fun findUser(@Header("Authorization") auth: String, @Path("email") email: String): Call<AddUserRequestModel>
+
+    @GET("channel")
+    fun getAllChannels(@Header("Authorization") auth: String): Call<ArrayList<Channel>>
 }
