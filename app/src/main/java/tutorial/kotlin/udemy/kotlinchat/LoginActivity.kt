@@ -8,7 +8,6 @@ import android.util.Log
 import android.view.View
 import android.widget.Toast
 import kotlinx.android.synthetic.main.activity_login.*
-import kotlinx.android.synthetic.main.activity_signup.*
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -44,10 +43,12 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
             apiService.loginUser(UserRegistration(mail, pass)).enqueue(object : Callback<UserLoginModel> {
                 override fun onResponse(call: Call<UserLoginModel>?, response: Response<UserLoginModel>?) {
                     if (response!!.isSuccessful) {
-                        AuthService.isLoggedIn = true
-                        AuthService.userAuthData = response.body()!!
+                        ChatApp.sharedPref.isLoggedIn = true
+                        val userAuthModel = response.body()!!
+                        ChatApp.sharedPref.authToken = userAuthModel.token
+                        ChatApp.sharedPref.userMail = userAuthModel.user
                         Log.d(TAG, response.body().toString())
-                        apiService.findUser("Bearer ${AuthService.userAuthData.token}", AuthService.userAuthData.user).enqueue(object : Callback<AddUserRequestModel>{
+                        apiService.findUser("Bearer ${userAuthModel.token}", userAuthModel.user).enqueue(object : Callback<AddUserRequestModel> {
                             override fun onResponse(call: Call<AddUserRequestModel>?, response: Response<AddUserRequestModel>?) {
                                 Log.d(TAG, "Url "+call!!.request().url());
                                 if (response!!.isSuccessful) {

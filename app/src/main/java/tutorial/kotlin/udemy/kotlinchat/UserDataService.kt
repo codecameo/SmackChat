@@ -13,9 +13,9 @@ object UserDataService {
         AuthService.userModel.avatarName = ""
         AuthService.userModel.email = ""
         AuthService.userModel.name = ""
-        AuthService.userAuthData.token = ""
-        AuthService.userAuthData.user = ""
-        AuthService.isLoggedIn = false
+        ChatApp.sharedPref.authToken = ""
+        ChatApp.sharedPref.userMail = ""
+        ChatApp.sharedPref.isLoggedIn = false
     }
 
     fun returnAvatarColor(components: String) : Int {

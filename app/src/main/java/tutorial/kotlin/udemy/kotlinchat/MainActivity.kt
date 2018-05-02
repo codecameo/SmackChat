@@ -24,6 +24,7 @@ import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import tutorial.kotlin.udemy.kotlinchat.network.ApiClient
+import tutorial.kotlin.udemy.kotlinchat.network.models.AddUserRequestModel
 import tutorial.kotlin.udemy.kotlinchat.network.models.Channel
 import tutorial.kotlin.udemy.kotlinchat.services.MessageService
 
@@ -41,14 +42,18 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
     private val userDataChangeReceiver = object : BroadcastReceiver(){
         override fun onReceive(context: Context?, intent: Intent?) {
-            tv_nav_username.text = AuthService.userModel.name
-            tv_nav_user_mail.text = AuthService.userModel.email
-            btn_nav_bar_login.text = "Logout"
-            val resId = resources.getIdentifier(AuthService.userModel.avatarName, "drawable", packageName);
-            iv_nav_user_image.setImageResource(resId)
-            iv_nav_user_image.setBackgroundColor(UserDataService.returnAvatarColor(AuthService.userModel.avatarColor))
-            getAllChannels()
+            updateUserData();
         }
+    }
+
+    private fun updateUserData() {
+        tv_nav_username.text = AuthService.userModel.name
+        tv_nav_user_mail.text = AuthService.userModel.email
+        btn_nav_bar_login.text = "Logout"
+        val resId = resources.getIdentifier(AuthService.userModel.avatarName, "drawable", packageName);
+        iv_nav_user_image.setImageResource(resId)
+        iv_nav_user_image.setBackgroundColor(UserDataService.returnAvatarColor(AuthService.userModel.avatarColor))
+        getAllChannels()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -66,6 +71,10 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         socket.connect()
         socket.on("channelCreated", onNewChannel)
 
+        if (ChatApp.sharedPref.isLoggedIn) {
+            login()
+        }
+
     }
 
     private fun setAdapter() {
@@ -74,9 +83,9 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     }
 
     private fun getAllChannels() {
-        if (AuthService.isLoggedIn) {
+        if (ChatApp.sharedPref.isLoggedIn) {
             val apiClient = ApiClient.getApiService()
-            apiClient.getAllChannels("Bearer ${AuthService.userAuthData.token}").enqueue(object : Callback<ArrayList<Channel>> {
+            apiClient.getAllChannels("Bearer ${ChatApp.sharedPref.authToken}").enqueue(object : Callback<ArrayList<Channel>> {
                 override fun onResponse(call: Call<ArrayList<Channel>>?, response: Response<ArrayList<Channel>>?) {
                     if (response!!.isSuccessful) {
                         MessageService.channels.clear()
@@ -113,7 +122,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         val id = v?.id
         when (id) {
             R.id.btn_nav_bar_login ->
-                if(AuthService.isLoggedIn) showLogout() else showLogin()
+                if (ChatApp.sharedPref.isLoggedIn) showLogout() else showLogin()
             R.id.btn_add_channel ->
                 addChannel()
         }
@@ -129,7 +138,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     }
 
     private fun addChannel() {
-        if (!AuthService.isLoggedIn) return
+        if (!ChatApp.sharedPref.isLoggedIn) return
         val builder = AlertDialog.Builder(this)
         val dialogView = layoutInflater.inflate(R.layout.add_channel_dialog, null)
         builder.setView(dialogView)
@@ -154,5 +163,23 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         } else {
             super.onBackPressed()
         }
+    }
+
+    private fun login() {
+        val apiService = ApiClient.getApiService()
+        apiService.findUser("Bearer ${ChatApp.sharedPref.authToken}", ChatApp.sharedPref.userMail).enqueue(object : Callback<AddUserRequestModel> {
+            override fun onResponse(call: Call<AddUserRequestModel>?, response: Response<AddUserRequestModel>?) {
+                if (response!!.isSuccessful) {
+                    AuthService.userModel = response.body()!!
+                    updateUserData()
+                } else {
+                    showErrorMessage()
+                }
+            }
+
+            override fun onFailure(call: Call<AddUserRequestModel>?, t: Throwable?) {
+                showErrorMessage()
+            }
+        })
     }
 }

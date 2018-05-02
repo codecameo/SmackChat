@@ -99,10 +99,12 @@ class SignupActivity : AppCompatActivity(), View.OnClickListener {
                         apiService.loginUser(UserRegistration(email, password)).enqueue(object : Callback<UserLoginModel> {
                             override fun onResponse(call: Call<UserLoginModel>?, response: Response<UserLoginModel>?) {
                                 if (response!!.isSuccessful) {
-                                    AuthService.isLoggedIn = true
-                                    AuthService.userAuthData = response.body()!!
+                                    ChatApp.sharedPref.isLoggedIn = true
+                                    val userAuthModel = response.body()!!
+                                    ChatApp.sharedPref.authToken = userAuthModel.token
+                                    ChatApp.sharedPref.userMail = userAuthModel.user
                                     Log.d(TAG, response.body().toString())
-                                    apiService.addUser("Bearer ${AuthService.userAuthData.token}", AddUserRequestModel("", name, email, userAvatar, avatarColor))
+                                    apiService.addUser("Bearer ${userAuthModel.token}", AddUserRequestModel("", name, email, userAvatar, avatarColor))
                                         .enqueue(object : Callback<AddUserRequestModel> {
                                             override fun onResponse(call: Call<AddUserRequestModel>?, response: Response<AddUserRequestModel>?) {
                                                 if (response!!.isSuccessful) {
