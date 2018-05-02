@@ -99,10 +99,10 @@ class SignupActivity : AppCompatActivity(), View.OnClickListener {
                         apiService.loginUser(UserRegistration(email, password)).enqueue(object : Callback<UserLoginModel> {
                             override fun onResponse(call: Call<UserLoginModel>?, response: Response<UserLoginModel>?) {
                                 if (response!!.isSuccessful) {
-                                    AuthService.isLoggedIn = true;
+                                    AuthService.isLoggedIn = true
                                     AuthService.userAuthData = response.body()!!
                                     Log.d(TAG, response.body().toString())
-                                    apiService.addUser("Bearer ${AuthService.userAuthData.token}", AddUserRequestModel(name, email, userAvatar, avatarColor))
+                                    apiService.addUser("Bearer ${AuthService.userAuthData.token}", AddUserRequestModel("", name, email, userAvatar, avatarColor))
                                         .enqueue(object : Callback<AddUserRequestModel> {
                                             override fun onResponse(call: Call<AddUserRequestModel>?, response: Response<AddUserRequestModel>?) {
                                                 if (response!!.isSuccessful) {
