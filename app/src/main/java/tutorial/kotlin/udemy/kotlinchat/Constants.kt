@@ -5,3 +5,6 @@ package tutorial.kotlin.udemy.kotlinchat
  */
 const val BASE_DATA_URL = "https://gultuchat.herokuapp.com/"
 const val URL_EXTENSION = "v1/"
+
+//BroadCast Constant
+const val BROADCAST_USER_DATA_CHANGED = "BROADCAST_USER_DATA_CHANGED"

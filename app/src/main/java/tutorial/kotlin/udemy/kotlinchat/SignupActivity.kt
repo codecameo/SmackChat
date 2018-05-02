@@ -1,15 +1,21 @@
 package tutorial.kotlin.udemy.kotlinchat
 
+import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import android.support.v4.content.LocalBroadcastManager
 import android.support.v7.app.AppCompatActivity
 import android.text.TextUtils
 import android.util.Log
 import android.view.View
+import android.widget.Toast
 import kotlinx.android.synthetic.main.activity_signup.*
 import retrofit2.Call
 import retrofit2.Callback
+import retrofit2.Response
 import tutorial.kotlin.udemy.kotlinchat.network.ApiClient
+import tutorial.kotlin.udemy.kotlinchat.network.models.AddUserRequestModel
+import tutorial.kotlin.udemy.kotlinchat.network.models.UserLoginModel
 import tutorial.kotlin.udemy.kotlinchat.network.models.UserRegistration
 import java.util.*
 
@@ -79,28 +85,84 @@ class SignupActivity : AppCompatActivity(), View.OnClickListener {
     }
 
     private fun createAccount() {
+        enableProgress(true)
         val apiService = ApiClient.getApiService()
         val email = et_signup_email.text.toString()
         val password = et_signup_password.text.toString()
-        if (isValid(email, password)) {
+        val name = et_signup_username.text.toString()
+        var authToken : String
+
+        if (isValid(email, password, name)) {
             apiService.regUser(UserRegistration(email, password)).enqueue(object : Callback<String> {
                 override fun onResponse(call: Call<String>, response: retrofit2.Response<String>?) {
                     if (response?.isSuccessful!!) {
                         Log.d(TAG, response.body().toString())
+                        apiService.loginUser(UserRegistration(email, password)).enqueue(object : Callback<UserLoginModel>{
+                            override fun onResponse(call: Call<UserLoginModel>?, response: Response<UserLoginModel>?) {
+                                if (response!!.isSuccessful){
+                                    Log.d(TAG, response.body().toString())
+                                    authToken = response.body()!!.token
+                                    apiService.addUser("Bearer $authToken", AddUserRequestModel(name, email, userAvatar, avatarColor))
+                                            .enqueue(object : Callback<AddUserRequestModel>{
+                                                override fun onResponse(call: Call<AddUserRequestModel>?, response: Response<AddUserRequestModel>?) {
+                                                    if (response!!.isSuccessful){
+                                                        val userIntent = Intent(BROADCAST_USER_DATA_CHANGED)
+                                                        LocalBroadcastManager.getInstance(this@SignupActivity).sendBroadcast(userIntent)
+                                                        Log.d(TAG, response.body().toString())
+                                                        enableProgress(false)
+                                                        finish()
+                                                    }else{
+                                                        showErrorMessage()
+                                                    }
+                                                }
+
+                                                override fun onFailure(call: Call<AddUserRequestModel>?, t: Throwable?) {
+                                                    showErrorMessage()
+                                                }
+                                            })
+                                }else {
+                                    Log.d(TAG, "Error Occurred ${response.errorBody()!!.string()}")
+                                    showErrorMessage()
+                                }
+                            }
+
+                            override fun onFailure(call: Call<UserLoginModel>?, t: Throwable?) {
+                                showErrorMessage()
+                            }
+                        })
+
                     } else {
                         Log.d(TAG, "Error Occurred ${response.errorBody()!!.string()}")
+                        showErrorMessage()
                     }
                 }
 
                 override fun onFailure(call: Call<String>, t: Throwable) {
                     Log.d(TAG, t.message)
+                    showErrorMessage()
                 }
             })
+        }else{
+            Toast.makeText(this, "Field value can not be empty", Toast.LENGTH_SHORT).show()
+            enableProgress(false)
         }
     }
 
-    private fun isValid(email: String, password: String): Boolean {
-        return !TextUtils.isEmpty(email) && !TextUtils.isEmpty(password)
+
+    private fun showErrorMessage(){
+        Toast.makeText(this, "Something went wrong", Toast.LENGTH_SHORT).show()
+        enableProgress(false)
+    }
+
+    private fun enableProgress(enable: Boolean){
+        pb_creating_user.visibility = if(enable) View.VISIBLE else View.GONE
+        btn_create_account.isEnabled = !enable
+        iv_user_avatar.isEnabled = !enable
+        btn_generate_color.isEnabled = !enable
+    }
+
+    private fun isValid(email: String, password: String, name: String): Boolean {
+        return !TextUtils.isEmpty(email) && !TextUtils.isEmpty(password) && name.isNotBlank()
     }
 
 }
