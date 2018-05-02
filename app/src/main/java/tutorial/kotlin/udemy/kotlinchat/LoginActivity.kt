@@ -8,6 +8,7 @@ import android.util.Log
 import android.view.View
 import android.widget.Toast
 import kotlinx.android.synthetic.main.activity_login.*
+import kotlinx.android.synthetic.main.activity_signup.*
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -35,6 +36,7 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
     }
 
     private fun userLogin() {
+        enableProgress(true)
         val mail = et_signin_email.text.toString()
         val pass = et_signin_password.text.toString()
         if (mail.isNotEmpty() && pass.isNotEmpty()){
@@ -53,6 +55,7 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
                                     val userIntent = Intent(BROADCAST_USER_DATA_CHANGED)
                                     LocalBroadcastManager.getInstance(this@LoginActivity).sendBroadcast(userIntent)
                                     Log.d(TAG, response.body().toString())
+                                    enableProgress(false)
                                     finish()
                                 } else {
                                     showErrorMessage()
@@ -75,6 +78,7 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
             })
         }else{
             Toast.makeText(this, "Some fields are empty", Toast.LENGTH_SHORT).show()
+            enableProgress(false)
         }
     }
 
@@ -92,5 +96,13 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
 
     private fun showErrorMessage() {
         Toast.makeText(this, "Something went wrong", Toast.LENGTH_SHORT).show()
+        enableProgress(false)
     }
+
+    private fun enableProgress(enable: Boolean) {
+        pb_sign_in.visibility = if (enable) View.VISIBLE else View.GONE
+        btn_login.isEnabled = !enable
+        btn_signup.isEnabled = !enable
+    }
+
 }

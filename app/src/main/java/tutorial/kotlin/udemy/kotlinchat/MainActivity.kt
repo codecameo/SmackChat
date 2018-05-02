@@ -9,9 +9,11 @@ import android.os.Bundle
 import android.support.v4.content.LocalBroadcastManager
 import android.support.v4.view.GravityCompat
 import android.support.v7.app.ActionBarDrawerToggle
+import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
 import android.view.View
 import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.add_channel_dialog.view.*
 import kotlinx.android.synthetic.main.app_bar_main.*
 import kotlinx.android.synthetic.main.nav_header_main.*
 
@@ -67,7 +69,18 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     }
 
     private fun addChannel() {
+        if (!AuthService.isLoggedIn) return
+        val builder = AlertDialog.Builder(this)
+        val dialogView = layoutInflater.inflate(R.layout.add_channel_dialog, null)
+        builder.setView(dialogView)
+                .setPositiveButton("Add"){ dialog, which ->
+                    val channelName = dialogView.addChannelNameTxt.text.toString()
+                    val channelDes = dialogView.addChannelDescTxt.text.toString()
+                }
+                .setNegativeButton("Cancel"){ dialog, which ->
 
+                }
+                .show()
     }
 
     private fun showLogin() {
