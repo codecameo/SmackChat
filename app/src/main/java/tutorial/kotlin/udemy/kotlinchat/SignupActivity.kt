@@ -90,37 +90,38 @@ class SignupActivity : AppCompatActivity(), View.OnClickListener {
         val email = et_signup_email.text.toString()
         val password = et_signup_password.text.toString()
         val name = et_signup_username.text.toString()
-        var authToken : String
 
         if (isValid(email, password, name)) {
             apiService.regUser(UserRegistration(email, password)).enqueue(object : Callback<String> {
                 override fun onResponse(call: Call<String>, response: retrofit2.Response<String>?) {
                     if (response?.isSuccessful!!) {
                         Log.d(TAG, response.body().toString())
-                        apiService.loginUser(UserRegistration(email, password)).enqueue(object : Callback<UserLoginModel>{
+                        apiService.loginUser(UserRegistration(email, password)).enqueue(object : Callback<UserLoginModel> {
                             override fun onResponse(call: Call<UserLoginModel>?, response: Response<UserLoginModel>?) {
-                                if (response!!.isSuccessful){
+                                if (response!!.isSuccessful) {
+                                    AuthService.isLoggedIn = true;
+                                    AuthService.userAuthData = response.body()!!
                                     Log.d(TAG, response.body().toString())
-                                    authToken = response.body()!!.token
-                                    apiService.addUser("Bearer $authToken", AddUserRequestModel(name, email, userAvatar, avatarColor))
-                                            .enqueue(object : Callback<AddUserRequestModel>{
-                                                override fun onResponse(call: Call<AddUserRequestModel>?, response: Response<AddUserRequestModel>?) {
-                                                    if (response!!.isSuccessful){
-                                                        val userIntent = Intent(BROADCAST_USER_DATA_CHANGED)
-                                                        LocalBroadcastManager.getInstance(this@SignupActivity).sendBroadcast(userIntent)
-                                                        Log.d(TAG, response.body().toString())
-                                                        enableProgress(false)
-                                                        finish()
-                                                    }else{
-                                                        showErrorMessage()
-                                                    }
-                                                }
-
-                                                override fun onFailure(call: Call<AddUserRequestModel>?, t: Throwable?) {
+                                    apiService.addUser("Bearer ${AuthService.userAuthData.token}", AddUserRequestModel(name, email, userAvatar, avatarColor))
+                                        .enqueue(object : Callback<AddUserRequestModel> {
+                                            override fun onResponse(call: Call<AddUserRequestModel>?, response: Response<AddUserRequestModel>?) {
+                                                if (response!!.isSuccessful) {
+                                                    AuthService.userModel = response.body()!!
+                                                    val userIntent = Intent(BROADCAST_USER_DATA_CHANGED)
+                                                    LocalBroadcastManager.getInstance(this@SignupActivity).sendBroadcast(userIntent)
+                                                    Log.d(TAG, response.body().toString())
+                                                    enableProgress(false)
+                                                    finish()
+                                                } else {
                                                     showErrorMessage()
                                                 }
-                                            })
-                                }else {
+                                            }
+
+                                            override fun onFailure(call: Call<AddUserRequestModel>?, t: Throwable?) {
+                                                showErrorMessage()
+                                            }
+                                        })
+                                } else {
                                     Log.d(TAG, "Error Occurred ${response.errorBody()!!.string()}")
                                     showErrorMessage()
                                 }
@@ -142,20 +143,20 @@ class SignupActivity : AppCompatActivity(), View.OnClickListener {
                     showErrorMessage()
                 }
             })
-        }else{
+        } else {
             Toast.makeText(this, "Field value can not be empty", Toast.LENGTH_SHORT).show()
             enableProgress(false)
         }
     }
 
 
-    private fun showErrorMessage(){
+    private fun showErrorMessage() {
         Toast.makeText(this, "Something went wrong", Toast.LENGTH_SHORT).show()
         enableProgress(false)
     }
 
-    private fun enableProgress(enable: Boolean){
-        pb_creating_user.visibility = if(enable) View.VISIBLE else View.GONE
+    private fun enableProgress(enable: Boolean) {
+        pb_creating_user.visibility = if (enable) View.VISIBLE else View.GONE
         btn_create_account.isEnabled = !enable
         iv_user_avatar.isEnabled = !enable
         btn_generate_color.isEnabled = !enable

@@ -1,7 +1,12 @@
 package tutorial.kotlin.udemy.kotlinchat
 
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.graphics.Color
 import android.os.Bundle
+import android.support.v4.content.LocalBroadcastManager
 import android.support.v4.view.GravityCompat
 import android.support.v7.app.ActionBarDrawerToggle
 import android.support.v7.app.AppCompatActivity
@@ -11,6 +16,17 @@ import kotlinx.android.synthetic.main.app_bar_main.*
 import kotlinx.android.synthetic.main.nav_header_main.*
 
 class MainActivity : AppCompatActivity(), View.OnClickListener {
+
+    private val userDataChangeReceiver = object : BroadcastReceiver(){
+        override fun onReceive(context: Context?, intent: Intent?) {
+            tv_nav_username.text = AuthService.userModel.name
+            tv_nav_user_mail.text = AuthService.userModel.email
+            btn_nav_bar_login.text = "Logout"
+            val resId = resources.getIdentifier(AuthService.userModel.avatarName, "drawable", packageName);
+            iv_nav_user_image.setImageResource(resId)
+            iv_nav_user_image.setBackgroundColor(UserDataService.returnAvatarColor(AuthService.userModel.avatarColor))
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -23,6 +39,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
         initListeners()
 
+        LocalBroadcastManager.getInstance(this).registerReceiver(userDataChangeReceiver, IntentFilter(BROADCAST_USER_DATA_CHANGED))
     }
 
     private fun initListeners() {
@@ -34,10 +51,19 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         val id = v?.id
         when (id) {
             R.id.btn_nav_bar_login ->
-                showLogin()
+                if(AuthService.isLoggedIn) showLogout() else showLogin()
             R.id.btn_add_channel ->
                 addChannel()
         }
+    }
+
+    private fun showLogout() {
+        UserDataService.logout()
+        tv_nav_user_mail.text = ""
+        tv_nav_username.text = "Login"
+        iv_nav_user_image.setImageResource(R.drawable.profiledefault)
+        iv_nav_user_image.setBackgroundColor(Color.TRANSPARENT)
+        btn_nav_bar_login.text = "Login"
     }
 
     private fun addChannel() {

@@ -27,6 +27,7 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
 
     private fun createUser() {
         startActivity(Intent(this, SignupActivity::class.java))
+        finish()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
