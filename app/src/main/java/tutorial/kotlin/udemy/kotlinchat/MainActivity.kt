@@ -12,15 +12,26 @@ import android.support.v7.app.ActionBarDrawerToggle
 import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
 import android.view.View
+import android.widget.Toast
 import io.socket.client.IO
+import io.socket.emitter.Emitter
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.add_channel_dialog.view.*
 import kotlinx.android.synthetic.main.app_bar_main.*
 import kotlinx.android.synthetic.main.nav_header_main.*
+import tutorial.kotlin.udemy.kotlinchat.network.models.Channel
+import tutorial.kotlin.udemy.kotlinchat.services.MessageService
 
 class MainActivity : AppCompatActivity(), View.OnClickListener {
 
     val socket = IO.socket(BASE_DATA_URL)
+    private val onNewChannel = Emitter.Listener { args ->
+        runOnUiThread {
+            val newChannel = Channel(args[0] as String, args[1] as String, args[2] as String)
+            MessageService.channels.add(newChannel)
+            Toast.makeText(this, newChannel.toString(), Toast.LENGTH_SHORT).show()
+        }
+    }
 
     private val userDataChangeReceiver = object : BroadcastReceiver(){
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -43,13 +54,10 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         toggle.syncState()
 
         initListeners()
-
-    }
-
-    override fun onResume() {
-        super.onResume()
         LocalBroadcastManager.getInstance(this).registerReceiver(userDataChangeReceiver, IntentFilter(BROADCAST_USER_DATA_CHANGED))
         socket.connect()
+        socket.on("channelCreated", onNewChannel)
+
     }
 
     override fun onDestroy() {
