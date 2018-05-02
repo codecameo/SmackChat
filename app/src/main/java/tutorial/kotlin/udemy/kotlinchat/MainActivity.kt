@@ -11,7 +11,9 @@ import android.support.v4.view.GravityCompat
 import android.support.v7.app.ActionBarDrawerToggle
 import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
+import android.view.Gravity
 import android.view.View
+import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import io.socket.client.IO
@@ -19,6 +21,7 @@ import io.socket.emitter.Emitter
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.add_channel_dialog.view.*
 import kotlinx.android.synthetic.main.app_bar_main.*
+import kotlinx.android.synthetic.main.content_main.*
 import kotlinx.android.synthetic.main.nav_header_main.*
 import retrofit2.Call
 import retrofit2.Callback
@@ -28,9 +31,10 @@ import tutorial.kotlin.udemy.kotlinchat.network.models.AddUserRequestModel
 import tutorial.kotlin.udemy.kotlinchat.network.models.Channel
 import tutorial.kotlin.udemy.kotlinchat.services.MessageService
 
-class MainActivity : AppCompatActivity(), View.OnClickListener {
+class MainActivity : AppCompatActivity(), View.OnClickListener, AdapterView.OnItemClickListener {
 
     val socket = IO.socket(BASE_DATA_URL)
+    var selectedChannel: Channel? = null
     private val onNewChannel = Emitter.Listener { args ->
         runOnUiThread {
             val newChannel = Channel(args[0] as String, args[1] as String, args[2] as String)
@@ -90,7 +94,11 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                     if (response!!.isSuccessful) {
                         MessageService.channels.clear()
                         MessageService.channels.addAll(response.body()!!)
-                        channelAdapter.notifyDataSetChanged()
+                        if (MessageService.channels.size > 0) {
+                            selectedChannel = MessageService.channels[0]
+                            channelAdapter.notifyDataSetChanged()
+                            updateWithChannel()
+                        }
                     } else {
                         showErrorMessage()
                     }
@@ -101,6 +109,10 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                 }
             })
         }
+    }
+
+    private fun updateWithChannel() {
+        tv_title.text = selectedChannel?.toString()
     }
 
     private fun showErrorMessage() {
@@ -116,6 +128,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     private fun initListeners() {
         btn_add_channel.setOnClickListener(this)
         btn_nav_bar_login.setOnClickListener(this)
+        list_channel.setOnItemClickListener(this)
     }
 
     override fun onClick(v: View?) {
@@ -126,6 +139,12 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
             R.id.btn_add_channel ->
                 addChannel()
         }
+    }
+
+    override fun onItemClick(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+        selectedChannel = MessageService.channels[position]
+        drawer_layout.closeDrawer(Gravity.START)
+        updateWithChannel()
     }
 
     private fun showLogout() {
