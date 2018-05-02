@@ -12,12 +12,15 @@ import android.support.v7.app.ActionBarDrawerToggle
 import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
 import android.view.View
+import io.socket.client.IO
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.add_channel_dialog.view.*
 import kotlinx.android.synthetic.main.app_bar_main.*
 import kotlinx.android.synthetic.main.nav_header_main.*
 
 class MainActivity : AppCompatActivity(), View.OnClickListener {
+
+    val socket = IO.socket(BASE_DATA_URL)
 
     private val userDataChangeReceiver = object : BroadcastReceiver(){
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -41,7 +44,18 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
         initListeners()
 
+    }
+
+    override fun onResume() {
+        super.onResume()
         LocalBroadcastManager.getInstance(this).registerReceiver(userDataChangeReceiver, IntentFilter(BROADCAST_USER_DATA_CHANGED))
+        socket.connect()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(userDataChangeReceiver)
+        socket.disconnect()
     }
 
     private fun initListeners() {
@@ -76,6 +90,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                 .setPositiveButton("Add"){ dialog, which ->
                     val channelName = dialogView.addChannelNameTxt.text.toString()
                     val channelDes = dialogView.addChannelDescTxt.text.toString()
+                    socket.emit("newChannel", channelName, channelDes)
                 }
                 .setNegativeButton("Cancel"){ dialog, which ->
 
