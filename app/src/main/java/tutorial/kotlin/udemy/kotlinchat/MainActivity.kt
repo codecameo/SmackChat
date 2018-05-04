@@ -11,6 +11,7 @@ import android.support.v4.view.GravityCompat
 import android.support.v7.app.ActionBarDrawerToggle
 import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
+import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.widget.AdapterView
@@ -29,19 +30,44 @@ import retrofit2.Response
 import tutorial.kotlin.udemy.kotlinchat.network.ApiClient
 import tutorial.kotlin.udemy.kotlinchat.network.models.AddUserRequestModel
 import tutorial.kotlin.udemy.kotlinchat.network.models.Channel
+import tutorial.kotlin.udemy.kotlinchat.network.models.Message
 import tutorial.kotlin.udemy.kotlinchat.services.MessageService
 
 class MainActivity : AppCompatActivity(), View.OnClickListener, AdapterView.OnItemClickListener {
 
+    val TAG = "MainActivity"
     val socket = IO.socket(BASE_DATA_URL)
     var selectedChannel: Channel? = null
     private val onNewChannel = Emitter.Listener { args ->
-        runOnUiThread {
-            val newChannel = Channel(args[0] as String, args[1] as String, args[2] as String)
-            MessageService.channels.add(newChannel)
-            channelAdapter.notifyDataSetChanged()
+        if (ChatApp.sharedPref.isLoggedIn) {
+            runOnUiThread {
+                val newChannel = Channel(args[0] as String, args[1] as String, args[2] as String)
+                MessageService.channels.add(newChannel)
+                channelAdapter.notifyDataSetChanged()
+            }
         }
     }
+
+    private val onNewMessage = Emitter.Listener { args ->
+        if (ChatApp.sharedPref.isLoggedIn) {
+            runOnUiThread {
+                val messageBody = args[0] as String
+                val userId = args[1] as String
+                val channelId = args[2] as String
+                val username = args[3] as String
+                val userAvatar = args[4] as String
+                val userAvatarColor = args[5] as String
+                val id = args[6] as String
+                val timeStamp = args[7] as String
+                if (channelId == selectedChannel?._id) {
+                    val message = Message(messageBody, username, channelId, userId, userAvatar, userAvatarColor, id, timeStamp)
+                    Log.d(TAG, message.toString())
+                    MessageService.messages.add(message)
+                }
+            }
+        }
+    }
+
     private lateinit var channelAdapter: ArrayAdapter<Channel>
 
     private val userDataChangeReceiver = object : BroadcastReceiver(){
@@ -74,6 +100,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, AdapterView.OnIt
         LocalBroadcastManager.getInstance(this).registerReceiver(userDataChangeReceiver, IntentFilter(BROADCAST_USER_DATA_CHANGED))
         socket.connect()
         socket.on("channelCreated", onNewChannel)
+        socket.on("messageCreated", onNewMessage)
 
         if (ChatApp.sharedPref.isLoggedIn) {
             login()
@@ -113,6 +140,29 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, AdapterView.OnIt
 
     private fun updateWithChannel() {
         tv_title.text = selectedChannel?.toString()
+        updateMessageList()
+    }
+
+    private fun updateMessageList() {
+        val apiClient = ApiClient.getApiService()
+        if (selectedChannel != null)
+            apiClient.getAllMessageFromChannel("Bearer ${ChatApp.sharedPref.authToken}", selectedChannel!!._id).enqueue(object : Callback<ArrayList<Message>> {
+
+                override fun onResponse(call: Call<ArrayList<Message>>?, response: Response<ArrayList<Message>>?) {
+                    Log.d(TAG, response!!.raw().request().url().toString())
+                    if (response!!.isSuccessful) {
+                        MessageService.messages.clear()
+                        MessageService.messages.addAll(response.body()!!)
+                        Toast.makeText(this@MainActivity, "Size ${response.body()!!.size}", Toast.LENGTH_SHORT).show()
+                    } else {
+                        showErrorMessage()
+                    }
+                }
+
+                override fun onFailure(call: Call<ArrayList<Message>>?, t: Throwable?) {
+                    showErrorMessage()
+                }
+            })
     }
 
     private fun showErrorMessage() {
@@ -129,6 +179,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, AdapterView.OnIt
         btn_add_channel.setOnClickListener(this)
         btn_nav_bar_login.setOnClickListener(this)
         list_channel.setOnItemClickListener(this)
+        btn_send_message.setOnClickListener(this)
     }
 
     override fun onClick(v: View?) {
@@ -138,6 +189,19 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, AdapterView.OnIt
                 if (ChatApp.sharedPref.isLoggedIn) showLogout() else showLogin()
             R.id.btn_add_channel ->
                 addChannel()
+            R.id.btn_send_message ->
+                sendMessage()
+        }
+    }
+
+    private fun sendMessage() {
+        if (ChatApp.sharedPref.isLoggedIn && et_message_composer.text.isNotEmpty() && selectedChannel != null) {
+            val userId = AuthService.userModel._id
+            val channelId = selectedChannel!!._id
+            socket.emit("newMessage", et_message_composer.text.toString(),
+                    userId, channelId, AuthService.userModel.name,
+                    AuthService.userModel.avatarName, AuthService.userModel.avatarColor)
+            et_message_composer.text.clear()
         }
     }
 
@@ -149,6 +213,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, AdapterView.OnIt
 
     private fun showLogout() {
         UserDataService.logout()
+        channelAdapter.notifyDataSetChanged()
         tv_nav_user_mail.text = ""
         tv_nav_username.text = "Login"
         iv_nav_user_image.setImageResource(R.drawable.profiledefault)

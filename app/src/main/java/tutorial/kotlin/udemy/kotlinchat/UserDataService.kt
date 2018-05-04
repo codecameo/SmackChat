@@ -1,6 +1,7 @@
 package tutorial.kotlin.udemy.kotlinchat
 
 import android.graphics.Color
+import tutorial.kotlin.udemy.kotlinchat.services.MessageService
 import java.util.*
 
 /**
@@ -16,6 +17,8 @@ object UserDataService {
         ChatApp.sharedPref.authToken = ""
         ChatApp.sharedPref.userMail = ""
         ChatApp.sharedPref.isLoggedIn = false
+        MessageService.channels.clear()
+        MessageService.messages.clear()
     }
 
     fun returnAvatarColor(components: String) : Int {
