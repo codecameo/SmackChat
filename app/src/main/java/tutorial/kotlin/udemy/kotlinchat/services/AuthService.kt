@@ -1,4 +1,4 @@
-package tutorial.kotlin.udemy.kotlinchat
+package tutorial.kotlin.udemy.kotlinchat.services
 
 import tutorial.kotlin.udemy.kotlinchat.network.models.AddUserRequestModel
 

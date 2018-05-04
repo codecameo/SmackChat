@@ -15,6 +15,7 @@ import tutorial.kotlin.udemy.kotlinchat.network.ApiClient
 import tutorial.kotlin.udemy.kotlinchat.network.models.AddUserRequestModel
 import tutorial.kotlin.udemy.kotlinchat.network.models.UserLoginModel
 import tutorial.kotlin.udemy.kotlinchat.network.models.UserRegistration
+import tutorial.kotlin.udemy.kotlinchat.services.AuthService
 
 /**
  * Created by Md. Sifat-Ul Haque on 2/2/2018.

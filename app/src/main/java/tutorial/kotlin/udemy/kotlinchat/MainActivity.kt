@@ -11,6 +11,7 @@ import android.support.v4.view.GravityCompat
 import android.support.v7.app.ActionBarDrawerToggle
 import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
+import android.support.v7.widget.LinearLayoutManager
 import android.util.Log
 import android.view.Gravity
 import android.view.View
@@ -27,17 +28,23 @@ import kotlinx.android.synthetic.main.nav_header_main.*
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import tutorial.kotlin.udemy.kotlinchat.adapters.MessageAdapter
 import tutorial.kotlin.udemy.kotlinchat.network.ApiClient
 import tutorial.kotlin.udemy.kotlinchat.network.models.AddUserRequestModel
 import tutorial.kotlin.udemy.kotlinchat.network.models.Channel
 import tutorial.kotlin.udemy.kotlinchat.network.models.Message
+import tutorial.kotlin.udemy.kotlinchat.services.AuthService
 import tutorial.kotlin.udemy.kotlinchat.services.MessageService
+import tutorial.kotlin.udemy.kotlinchat.services.UserDataService
 
 class MainActivity : AppCompatActivity(), View.OnClickListener, AdapterView.OnItemClickListener {
 
     val TAG = "MainActivity"
     val socket = IO.socket(BASE_DATA_URL)
     var selectedChannel: Channel? = null
+    private lateinit var messageAdapter: MessageAdapter
+    private lateinit var channelAdapter: ArrayAdapter<Channel>
+
     private val onNewChannel = Emitter.Listener { args ->
         if (ChatApp.sharedPref.isLoggedIn) {
             runOnUiThread {
@@ -63,12 +70,11 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, AdapterView.OnIt
                     val message = Message(messageBody, username, channelId, userId, userAvatar, userAvatarColor, id, timeStamp)
                     Log.d(TAG, message.toString())
                     MessageService.messages.add(message)
+                    notifyList()
                 }
             }
         }
     }
-
-    private lateinit var channelAdapter: ArrayAdapter<Channel>
 
     private val userDataChangeReceiver = object : BroadcastReceiver(){
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -111,6 +117,10 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, AdapterView.OnIt
     private fun setAdapter() {
         channelAdapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, MessageService.channels)
         list_channel.adapter = channelAdapter
+
+        messageAdapter = MessageAdapter(this, MessageService.messages)
+        rv_message.adapter = messageAdapter
+        rv_message.layoutManager = LinearLayoutManager(this)
     }
 
     private fun getAllChannels() {
@@ -153,7 +163,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, AdapterView.OnIt
                     if (response!!.isSuccessful) {
                         MessageService.messages.clear()
                         MessageService.messages.addAll(response.body()!!)
-                        Toast.makeText(this@MainActivity, "Size ${response.body()!!.size}", Toast.LENGTH_SHORT).show()
+                        notifyList()
                     } else {
                         showErrorMessage()
                     }
@@ -163,6 +173,13 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, AdapterView.OnIt
                     showErrorMessage()
                 }
             })
+    }
+
+    private fun notifyList() {
+        messageAdapter.notifyDataSetChanged()
+        if (messageAdapter.itemCount > 0) {
+            rv_message.smoothScrollToPosition(messageAdapter.itemCount - 1)
+        }
     }
 
     private fun showErrorMessage() {
@@ -219,6 +236,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, AdapterView.OnIt
         iv_nav_user_image.setImageResource(R.drawable.profiledefault)
         iv_nav_user_image.setBackgroundColor(Color.TRANSPARENT)
         btn_nav_bar_login.text = "Login"
+        tv_title.text = "Please Login"
     }
 
     private fun addChannel() {
@@ -231,9 +249,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, AdapterView.OnIt
                     val channelDes = dialogView.addChannelDescTxt.text.toString()
                     socket.emit("newChannel", channelName, channelDes)
                 }
-                .setNegativeButton("Cancel"){ dialog, which ->
-
-                }
+                .setNegativeButton("Cancel") { dialog, which -> }
                 .show()
     }
 

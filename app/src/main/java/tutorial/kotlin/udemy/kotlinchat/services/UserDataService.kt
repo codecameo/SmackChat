@@ -1,7 +1,7 @@
-package tutorial.kotlin.udemy.kotlinchat
+package tutorial.kotlin.udemy.kotlinchat.services
 
 import android.graphics.Color
-import tutorial.kotlin.udemy.kotlinchat.services.MessageService
+import tutorial.kotlin.udemy.kotlinchat.ChatApp
 import java.util.*
 
 /**
